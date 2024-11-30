@@ -3,6 +3,8 @@
     Author: Alex Ayers
 */
 
+const sunoAPI = "https://studio-api.suno.ai/api";
+
 // Find Bearer token
 function getCookieValue(name) {
   const value = `; ${document.cookie}`;
@@ -13,7 +15,7 @@ function getCookieValue(name) {
 // Find total items in trash
 async function getTotalTrashSize() {
   let bearerToken = getCookieValue('__session');
-  await fetch('https://studio-api.suno.ai/api/clips/trashed_v2?page=0&page_size=1', {
+  await fetch(`${sunoAPI}/clips/trashed_v2?page=0&page_size=1`, {
   method: 'GET',
   headers: {
     'Authorization': 'Bearer ' + bearerToken,
@@ -36,7 +38,7 @@ async function searchTrash(search) {
   let bearerToken = getCookieValue('__session');
   let tashSize = await getTotalTrashSize();
   let searchResults;
-  await fetch('https://studio-api.suno.ai/api/clips/trashed_v2?page=0&page_size=' + tashSize, {
+  await fetch(`${sunoAPI}/clips/trashed_v2?page=0&page_size=${trashSize}`, {
   method: 'GET',
   headers: {
     'Authorization': 'Bearer ' + bearerToken,

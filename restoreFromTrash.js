@@ -6,7 +6,6 @@
 // Base API Path
 const sunoAPI = "https://studio-api.suno.ai/api";
 
-
 // Find Bearer token
 function getCookieValue(name) {
     const value = `; ${document.cookie}`;
@@ -17,7 +16,7 @@ function getCookieValue(name) {
   // Restore your song
 async function restoreMySong(songID) {
     let bearerToken = getCookieValue('__session');
-    await fetch(sunoAPI+ '/gen/trash/', {
+    await fetch(`${sunoAPI}/gen/trash/`, {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + bearerToken,
