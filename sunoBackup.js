@@ -9,6 +9,7 @@
 // Base API Path
 const sunoAPI = "https://studio-api.suno.ai/api";
 
+
 // Find Bearer token
 function getCookieValue(name) {
     const value = `; ${document.cookie}`;
@@ -36,14 +37,12 @@ function getCookieValue(name) {
     }
 }
 
-  
-  async function getAllClips() {
+  async function getAllClips(filter) {
 
     let totalPages = await howManyPages();
     let allClips = [];
 
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 
     for (let i = 0; i < totalPages; i++) {
         let bearerToken = getCookieValue('__session');
@@ -57,6 +56,67 @@ function getCookieValue(name) {
         });
 
         let data = await response.json();
+        
+
+        if (filter.downloadMusic === false) {
+            console.log('Not downloading music');
+        }
+
+        if (filter.downloadArt === false) {
+            console.log('Not downloading art');
+        }
+
+
+        for (let j = 0; j < data.project_clips.length; j++) {
+            let mp3 = data.project_clips[j].clip.audio_url;
+            let songID = data.project_clips[j].clip.id;
+            let songTitle = data.project_clips[j].clip.title;
+            let songArt = data.project_clips[j].clip.image_url;
+
+            if (filter.downloadMusic === true) {
+                try {
+                    let response = await fetch(mp3, { method: 'GET' });
+                    let blob = await response.blob();
+                    let url = URL.createObjectURL(blob);
+                    let a = document.createElement('a');
+                    a.href = url;
+                    let fileName = `${songID}_${songTitle}.mp3`;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+            
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+            
+                    console.log(`Downloaded: ${fileName}`);
+                } catch (error) {
+                    console.error(`Failed to download file: ${mp3}`, error);
+                }
+            }
+
+            if (filter.downloadArt === true) {
+                try {
+                    let response = await fetch(songArt, { method: 'GET' });
+                    let blob = await response.blob();
+                    let url = URL.createObjectURL(blob);
+                    let a = document.createElement('a');
+                    a.href = url;
+                    let fileName = `${songID}_${songTitle}.jpeg`;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+            
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+            
+                    console.log(`Downloaded: ${fileName}`);
+                } catch (error) {
+                    console.error(`Failed to download file: ${songArt}`, error);
+                }
+            }
+
+        }
+
         allClips.push(...data.project_clips); 
         console.log('working...');
         await delay(250);
@@ -65,8 +125,8 @@ function getCookieValue(name) {
     return allClips;
   }
 
-  async function getMetaData() {
-    let allClips = await getAllClips();
+  async function backupSuno(filter) {
+    let allClips = await getAllClips(filter);
    
     const json = JSON.stringify(allClips, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
@@ -81,4 +141,13 @@ function getCookieValue(name) {
     URL.revokeObjectURL(url);
   }
   
-await getMetaData();
+await backupSuno({
+    'downloadArt': false,
+    'downloadMusic': false,
+    'filters': {
+        'public': true,
+        'private': false,
+        '':
+    }
+});
+ 
