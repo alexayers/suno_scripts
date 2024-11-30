@@ -21,7 +21,24 @@ function getCookieValue(name) {
   
   // Check if our special backup playlist exists
   async function doesBackupPlaylistExist() {
-
+    let bearerToken = getCookieValue('__session');
+    await fetch(sunoAPI + '/notification', {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + bearerToken,
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        haters = data.notifications
+      .filter(e => e.notification_type.includes('unfollow') || e.notification_type.includes('clip_unlike'));
+    
+      console.log(haters);
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
   }
 
    // Create our special backup playlist exists
@@ -48,25 +65,7 @@ function getCookieValue(name) {
 
    }
   
-  async function createBackUpPlaylist() {
-    let bearerToken = getCookieValue('__session');
-    await fetch(sunoAPI + '/notification', {
-      method: 'GET',
-      headers: {
-        'Authorization': 'Bearer ' + bearerToken,
-        'Content-Type': 'application/json'
-      }
-    })
-      .then(res => res.json())
-      .then(data => {
-        haters = data.notifications
-      .filter(e => e.notification_type.includes('unfollow') || e.notification_type.includes('clip_unlike'));
-    
-      console.log(haters);
-      })
-      .catch(error => {
-        console.error('Error:', error);
-      });
-  }
+
   
-  await doesBackupPlaylistExist();
+  let answer= await doesBackupPlaylistExist();
+  console.log(answer);
