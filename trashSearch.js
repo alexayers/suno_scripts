@@ -36,7 +36,7 @@ async function getTotalTrashSize() {
 // Search trash for a given song
 async function searchTrash(search) {
   let bearerToken = getCookieValue('__session');
-  let tashSize = await getTotalTrashSize();
+  let trashSize = await getTotalTrashSize();
   let searchResults;
   await fetch(`${sunoAPI}/clips/trashed_v2?page=0&page_size=${trashSize}`, {
   method: 'GET',
@@ -65,3 +65,4 @@ async function searchTrash(search) {
   return searchResults;
 }
  
+await searchTrash('club');

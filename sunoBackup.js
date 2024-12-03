@@ -138,8 +138,8 @@ async function backupSuno(filter) {
 
 // Execute backup
 await backupSuno({
-    downloadArt: true,
-    downloadMusic: true,
+    downloadArt: false,
+    downloadMusic: false,
     filters: {
         includePublic: true,
         includePrivate: true,
