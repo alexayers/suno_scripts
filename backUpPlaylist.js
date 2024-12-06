@@ -138,7 +138,7 @@ async function backupSuno(filter) {
 
 // Execute backup
 await backupSuno({
-    playlistId: '1583ce6b-3c00-4781-99a9-eaa382bc97b9', // Example UUID
+    playlistId: '<playListID>', // Your playlist ID
     downloadArt: true,
     downloadMusic: true,
     filters: {
