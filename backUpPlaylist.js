@@ -148,7 +148,7 @@ async function backupSuno(filter) {
 
 // Execute backup
 await backupSuno({
-    playlistId: 'c0d27831-1974-47ac-9061-df52d5d2a7ae', // Your playlist ID
+    playlistId: '<playlistID>', // Your playlist ID
     downloadArt: true,
     downloadMusic: true,
     filters: {
