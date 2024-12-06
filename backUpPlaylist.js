@@ -30,32 +30,13 @@ function getCookieValue(name) {
     if (parts.length === 2) return parts.pop().split(';').shift();
 }
 
-// Calculate the number of pages
-async function howManyPages() {
-    let bearerToken = getCookieValue('__session');
-    try {
-        let response = await fetch(`${sunoAPI}/project/default?page=0`, {
-            method: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + bearerToken,
-                'Content-Type': 'application/json',
-            },
-        });
-        let data = await response.json();
-        return Math.ceil(data.clip_count / 20);
-    } catch (error) {
-        console.error('Error fetching page count:', error);
-        return 0;
-    }
-}
-
 // Fetch and process all clips
 async function getAllClips(filter) {
     const zip = new JSZip();
     const sunoFolder = zip.folder('suno');
     const musicFolder = sunoFolder.folder('music');
     const artFolder = sunoFolder.folder('art');
-    let totalPages = await howManyPages();
+
     let allClips = [];
     const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -63,52 +44,62 @@ async function getAllClips(filter) {
         console.error('You must set a playlist id');
     }
 
-    let bearerToken = getCookieValue('__session');
-    let response = await fetch(`${sunoAPI}/playlist/${filter.playlistId}`, {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${bearerToken}`,
-            'Content-Type': 'application/json',
-        },
-    });
+    let totalPages = await howManyPages(filter.playlistId);
 
-    let data = await response.json();
 
-    for (let j = 0; j < data.playlist_clips.length; j++) {
-        let clip = data.playlist_clips[j].clip;
-        let { id, title, audio_url: mp3, image_url: songArt, is_public } = clip;
+    for (let i = 0; i < totalPages; i++) {
 
-        // Skip clips based on filter
-        if (is_public && !filter.filters.includePublic) continue;
-        if (!is_public && !filter.filters.includePrivate) continue;
+        let bearerToken = getCookieValue('__session');
+        let response = await fetch(`${sunoAPI}/playlist/${filter.playlistId}?page=${i + 1}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${bearerToken}`,
+                'Content-Type': 'application/json',
+            },
 
-        // Process music files
-        if (filter.downloadMusic) {
-            try {
-                let response = await fetch(mp3, { method: 'GET' });
-                let blob = await response.blob();
-                musicFolder.file(`${id}_${title}.mp3`, blob);
-                console.log(`Added music: ${id}_${title}.mp3`);
-            } catch (error) {
-                console.error(`Failed to fetch music: ${mp3}`, error);
+        });
+
+        let data = await response.json();
+
+        for (let j = 0; j < data.playlist_clips.length; j++) {
+            let clip = data.playlist_clips[j].clip;
+            let { id, title, audio_url: mp3, image_url: songArt, is_public } = clip;
+
+            // Skip clips based on filter
+            if (is_public && !filter.filters.includePublic) continue;
+            if (!is_public && !filter.filters.includePrivate) continue;
+
+            // Process music files
+            if (filter.downloadMusic) {
+                try {
+                    let response = await fetch(mp3, { method: 'GET' });
+                    let blob = await response.blob();
+                    musicFolder.file(`${id}_${title}.mp3`, blob);
+                    console.log(`Added music: ${id}_${title}.mp3`);
+                } catch (error) {
+                    console.error(`Failed to fetch music: ${mp3}`, error);
+                }
             }
+
+            // Process art files
+            if (filter.downloadArt) {
+                try {
+                    let response = await fetch(songArt, { method: 'GET' });
+                    let blob = await response.blob();
+                    artFolder.file(`${id}_${title}.jpeg`, blob);
+                    console.log(`Added art: ${id}_${title}.jpeg`);
+                } catch (error) {
+                    console.error(`Failed to fetch art: ${songArt}`, error);
+                }
+            }
+
+            allClips.push(clip);
         }
 
-        // Process art files
-        if (filter.downloadArt) {
-            try {
-                let response = await fetch(songArt, { method: 'GET' });
-                let blob = await response.blob();
-                artFolder.file(`${id}_${title}.jpeg`, blob);
-                console.log(`Added art: ${id}_${title}.jpeg`);
-            } catch (error) {
-                console.error(`Failed to fetch art: ${songArt}`, error);
-            }
-        }
+        console.log(`Processed page ${i + 1} of ${totalPages}`);
+        await delay(250); // Add delay to avoid overwhelming the API
 
-        allClips.push(clip);
     }
-
 
     // Add metadata JSON to the ZIP archive
     const json = JSON.stringify(allClips, null, 2);
@@ -130,6 +121,25 @@ async function getAllClips(filter) {
     return allClips;
 }
 
+
+async function howManyPages(playListID) {
+
+    let bearerToken = getCookieValue('__session');
+    // Get total pages required
+
+    let response = await fetch(`${sunoAPI}/playlist/${playListID}?page=1`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${bearerToken}`,
+            'Content-Type': 'application/json',
+        },
+
+    });
+
+    let data = await response.json();
+    return Math.ceil(data.num_total_results / 50);
+}
+
 // Backup data
 async function backupSuno(filter) {
     await loadJSZip(); // Ensure JSZip is loaded
@@ -138,7 +148,7 @@ async function backupSuno(filter) {
 
 // Execute backup
 await backupSuno({
-    playlistId: '<playListID>', // Your playlist ID
+    playlistId: 'c0d27831-1974-47ac-9061-df52d5d2a7ae', // Your playlist ID
     downloadArt: true,
     downloadMusic: true,
     filters: {
