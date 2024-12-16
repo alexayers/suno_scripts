@@ -42,7 +42,7 @@ async function getMySession() {
 
     accountInfo = {
       id: sessionData["user"].id,
-      username: sessionData["user"].username,
+      username: sessionData["user"].username ? sessionData["user"].username.split('@')[0] : null,
       email: sessionData["user"].email ? sessionData["user"].email.split('@')[0] + '@*****' : null,
       display_name: sessionData["user"].display_name ? sessionData["user"].display_name.split('@')[0] : null,
       are_you_subscribed: sessionData["roles"].sub,
