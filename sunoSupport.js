@@ -19,10 +19,13 @@ async function getMySession() {
 
   if (!bearerToken) {
     console.error("Bearer token not found. Please log in.");
-    return;
+    return null;
   }
 
+  let accountInfo = {};
+
   try {
+    // Fetch session data
     const sessionResponse = await fetch(`${sunoAPI}/session`, {
       method: 'GET',
       headers: {
@@ -32,12 +35,12 @@ async function getMySession() {
     });
 
     if (!sessionResponse.ok) {
-      throw new Error(`HTTP error! Status: ${sessionResponse.status}`);
+      throw new Error(`Failed to fetch session data. HTTP status: ${sessionResponse.status}`);
     }
 
     const sessionData = await sessionResponse.json();
 
-    let accountInfo = {
+    accountInfo = {
       id: sessionData["user"].id,
       username: sessionData["user"].username,
       email: sessionData["user"].email ? sessionData["user"].email.split('@')[0] + '@*****' : null,
@@ -47,12 +50,13 @@ async function getMySession() {
 
   } catch (error) {
     console.error("Error fetching session:", error);
+    return null;
   }
 
   try {
-
-    const id = accountInfo['id'];
-    const getCreatorInfo = await fetch(`${sunoAPI}/user/get-creator-info/${id}`, {
+    // Fetch creator info
+    const id = accountInfo.id;
+    const creatorInfoResponse = await fetch(`${sunoAPI}/user/get-creator-info/${id}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${bearerToken}`,
@@ -60,25 +64,26 @@ async function getMySession() {
       },
     });
 
-    if (!getCreatorInfo.ok) {
-      throw new Error(`HTTP error! Status: ${getCreatorInfo.status}`);
+    if (!creatorInfoResponse.ok) {
+      throw new Error(`Failed to fetch creator info. HTTP status: ${creatorInfoResponse.status}`);
     }
 
-    const creatorData = await getCreatorInfo.json();
+    const creatorData = await creatorInfoResponse.json();
 
-    accountInfo = {
-      stats: creatorData['stats']
-    };
-
-
+    accountInfo.stats = creatorData.stats || null;
 
   } catch (error) {
-    console.error("Error fetching get-creator-info:", error);
+    console.error("Error fetching creator info:", error);
   }
 
   return accountInfo;
 }
 
-const accountInfo = await getMySession();
-
-console.log(accountInfo);
+(async () => {
+  const accountInfo = await getMySession();
+  if (accountInfo) {
+    console.log(accountInfo);
+  } else {
+    console.error("Unable to retrieve account information.");
+  }
+})();
