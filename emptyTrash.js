@@ -1,95 +1,87 @@
 /*
     YUCK! TAKE OUT THE TRASH
 
-    This script will empty your trash
+    This script will empty your trash.
     Author: Alex Ayers
 */
 
 const sunoAPI = "https://studio-api.suno.ai/api";
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Find Bearer token
+// Find Bearer token from cookies
 function getCookieValue(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop().split(';').shift();
 }
 
-async function getPersonaClips() {
-
-    let bearerToken = getCookieValue('__session');
-    let personaClipIds = [];
-
-    try {
-        const res = await fetch(`${sunoAPI}/persona/get-personas`, {
-            method: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + bearerToken,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        const data = await res.json();
-        personaClipIds = data.personas.map((clip) => clip.root_clip_id);
-
-    } catch (error) {
-        console.error('Error:', error);
-    }
-
-    return personaClipIds;
-}
-
+// Function to empty the trash in batches
 async function emptyTrash(batchSize) {
-    let bearerToken = getCookieValue('__session');
-    let deletingSongs = true;
-    let personaClipIds = await getPersonaClips();
 
-    console.log(personaClipIds);
+    let deletingSongs = true;
+    let page = 0;
 
     do {
-
         try {
-            const res = await fetch(`${sunoAPI}/clips/trashed_v2?page=0&page_size=${batchSize}`, {
+            let bearerToken = getCookieValue('__session');
+
+            // Fetch trashed clips
+            const res = await fetch(`${sunoAPI}/clips/trashed_v2?page=${page}&page_size=${batchSize}`, {
                 method: 'GET',
                 headers: {
-                    'Authorization': 'Bearer ' + bearerToken,
+                    'Authorization': `Bearer ${bearerToken}`,
                     'Content-Type': 'application/json'
                 }
             });
 
             const data = await res.json();
+            const totalPages = Math.ceil(data.num_total_results / batchSize);
 
             if (data.clips && data.clips.length > 0) {
+                // Filter and delete clips
+                const idsToDelete = data.clips
+                    .filter((clip) => clip.is_trashed === true) // Ensure it's trashed
+                    .filter((clip) => !('persona_id' in clip.metadata)) // Exclude persona clips
+                    .filter((clip) => !('persona' in clip)) // Exclude persona clips
+                    .map((clip) => clip.id);
+                try {
+                    if (idsToDelete.length > 0) {
+                        let bearerToken = getCookieValue('__session');
 
-                await fetch(`${sunoAPI}/clips/delete`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + bearerToken,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        'ids': data.clips
-                            // This shouldn't needed but this ensure we are deleting things that are 100% in the trash
-                            .filter((clip) => clip.is_trashed === true)
-                            // Exclude persona clips
-                            .filter((clip) => !personaClipIds.includes(clip.id))
-                            .map((clip) => clip.id)
-                    })
-                });
+                        await fetch(`${sunoAPI}/clips/delete`, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${bearerToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ ids: idsToDelete })
+                        });
 
-                console.log(`Deleted ${batchSize} songs`);
-                await delay(250); // Add delay to avoid overwhelming the API
+                        console.log(`Deleted ${idsToDelete.length} songs on page ${page} of ${totalPages}`);
+                    } else {
+                        console.log(`No valid songs to delete on page ${page}`);
+                    }
+
+                } catch (error) {
+                    console.log('Attempted to delete a persona song, since this will keep failing, skip to next page');
+                }
+
+                page++;
+
+                await delay(250); // Avoid overwhelming the API
             } else {
                 console.log('No more songs to delete');
                 deletingSongs = false;
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.log(`error ${error}`);
+            console.log('If these is an authentication error, we can ignore it an refresh the token');
         }
     } while (deletingSongs);
 }
 
 (async () => {
+    console.log('Starting trash cleanup...');
     await emptyTrash(20);
-    console.log('Deleted songs');
+    console.log('Trash cleanup complete. Deleted all eligible songs.');
 })();
