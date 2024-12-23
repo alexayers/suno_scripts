@@ -76,6 +76,41 @@ async function getMySession() {
     console.error("Error fetching creator info:", error);
   }
 
+  //
+
+  try {
+    // Fetch billing info
+    const id = accountInfo.id;
+    const billingInfoResponse = await fetch(`${sunoAPI}/billing/info`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${bearerToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!billingInfoResponse.ok) {
+      throw new Error(`Failed to fetch billing info. HTTP status: ${billingInfoResponse.status}`);
+    }
+
+    const billingData = await billingInfoResponse.json();
+
+    accountInfo.billing = {
+      is_active: billingData.is_active,
+      is_past_due: billingData.is_past_due,
+      credits: billingData.credits,
+      subscription_type: billingData.subscription_type,
+      renews_on: billingData.renews_on,
+      period: billingData.period,
+      monthly_limit: billingData.monthly_limit,
+      monthly_usage: billingData.monthly_usage,
+      total_credits_left: billingData.total_credits_left
+    }
+
+  } catch (error) {
+    console.error("Error fetching creator info:", error);
+  }
+
   return accountInfo;
 }
 
