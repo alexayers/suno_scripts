@@ -1,4 +1,4 @@
-# suno_scripts
+# Suno Scripts
 Browser scripts for working with Suno. This allows you to perform authenticated actions against the Suno API from your browser. **Note:** these scripts require you to execute them on suno.com, this is not a collection of scripts that act as a 3rd party API by design.
 
 ## PreReqs
