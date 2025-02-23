@@ -1,5 +1,5 @@
 /*
-  Pull my account info
+  Block all Trending Accounts
   by: Alex Ayers
 */
 
