@@ -45,7 +45,7 @@ async function getAllFollowers() {
     for (let i = 0; i < totalPages; i++) {
 
         let bearerToken = getCookieValue('__session');
-        let response = await fetch(`${sunoAPI}/profiles/followers?page=${i + 1}`, {
+        let followersResponse = await fetch(`${sunoAPI}/profiles/followers?page=${i + 1}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${bearerToken}`,
@@ -54,13 +54,35 @@ async function getAllFollowers() {
 
         });
 
-        let data = await response.json();
+        let followerData = await followersResponse.json();
 
-        for (let j = 0; j < data.profiles.length; j++) {
+        for (let j = 0; j < followerData.profiles.length; j++) {
+
+            let creatorInfoResopnse = await fetch(`${sunoAPI}/user/get-creator-info/${followerData.profiles[j]['external_user_id']}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${bearerToken}`,
+                    'Content-Type': 'application/json',
+                },
+
+            });
+
+            let creatorInfoData = await creatorInfoResopnse.json();
+
+            let likes = creatorInfoData['stats']['likes_count'] === undefined ? 0 : creatorInfoData['stats']['likes_count'];
+            let clips = creatorInfoData['stats']['clips_count'] === undefined ? 0 : creatorInfoData['stats']['clips_count'];
+            let followers = followerData.profiles[j]['stats']['followers_count'] === undefined ? 0 : followerData.profiles[j]['stats']['followers_count'];
+
+
             let follower = {
-                id: data.profiles[j]['external_user_id'],
-                handle: data.profiles[j]['handle'],
-                followers_count: data.profiles[j]['stats']['followers_count'],
+                id: followerData.profiles[j]['external_user_id'],
+                handle: followerData.profiles[j]['handle'],
+                followers_count: followers,
+                likes_given: likes,
+                clips_count: clips,
+                likes_to_followers_ratio: likes / followers,
+                clips_to_followers_ratio: clips / followers,
+                clips_to_likes_ratio: clips / likes
             }
 
             allFollowers.push(follower);
